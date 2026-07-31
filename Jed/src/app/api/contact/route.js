@@ -1,13 +1,8 @@
-import { createClient } from "@sanity/client";
+import { writeClient } from "../../../../Sainity/client.js";
 import { NextResponse } from "next/server";
+import logger from "../../../../lib/logger.js";
 
-const client = createClient({
-  projectId: process.env.SANITY_PROJECT_ID,
-  dataset: process.env.SANITY_DATASET,
-  apiVersion: "2024-01-01",
-  token: process.env.SANITY_API_TOKEN,
-  useCdn: false,
-});
+const client = writeClient;
 
 // Simple HTML-strip sanitizer
 function sanitize(str) {
@@ -68,7 +63,7 @@ export async function POST(request) {
       { status: 200 }
     );
   } catch (err) {
-    console.error("[Contact API Error]", err);
+    logger.error("POST /api/contact", "Failed to save enquiry", { error: err });
     return NextResponse.json(
       { success: false, error: "Internal server error. Please try again." },
       { status: 500 }

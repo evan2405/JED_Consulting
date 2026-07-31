@@ -532,7 +532,7 @@ const Home = ({
   return (
     <>
       {/* ── Floating CMS Visual Guide Toggle ── */}
-      <div className="fixed top-20 right-6 z-40">
+      <div className="fixed top-20 right-6 z-40 hidden md:block">
         <button
           onClick={() => setCmsGuideActive(!cmsGuideActive)}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-bold tracking-tight shadow-xl border transition-all ${
@@ -578,7 +578,7 @@ const Home = ({
                 <span>Your Trusted Education Partner</span>
               </div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05]
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05]
                              text-white mb-6 tracking-tight"
                   style={{ fontFamily: "var(--font-heading)" }}>
                 {renderHeroTitle()}
@@ -1001,13 +1001,13 @@ const Home = ({
               {/* Contact info */}
               <div className="flex flex-col gap-5 mb-10">
                 {[
-                  { icon: Phone, label: "Phone",    value: "+91 (0) 364 XXX XXXX" },
-                  { icon: Mail,  label: "Email",    value: "info@jedcms.com" },
-                  { icon: MapPin, label: "Location", value: "Shillong, Meghalaya, India" },
+                  { icon: Phone, label: "Phone",    value: "+91 (0) 364 XXX XXXX", href: "tel:+91036400000" },
+                  { icon: Mail,  label: "Email",    value: "info@jedcms.com",        href: "mailto:info@jedcms.com" },
+                  { icon: MapPin, label: "Location", value: "Shillong, Meghalaya, India", href: null },
                 ].map((item, i) => {
                   const Icon = item.icon;
-                  return (
-                    <div key={i} className="flex items-start gap-4">
+                  const inner = (
+                    <>
                       <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center
                                       justify-center shrink-0 mt-0.5">
                         <Icon className="w-4 h-4 text-red-400" />
@@ -1016,6 +1016,15 @@ const Home = ({
                         <p className="text-xs text-slate-500 uppercase tracking-wide">{item.label}</p>
                         <p className="text-white font-medium">{item.value}</p>
                       </div>
+                    </>
+                  );
+                  return item.href ? (
+                    <a key={i} href={item.href} className="flex items-start gap-4 hover:opacity-80 transition-opacity">
+                      {inner}
+                    </a>
+                  ) : (
+                    <div key={i} className="flex items-start gap-4">
+                      {inner}
                     </div>
                   );
                 })}

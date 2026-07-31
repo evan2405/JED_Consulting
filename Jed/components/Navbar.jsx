@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Menu, X, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled]           = useState(false);
@@ -20,11 +21,11 @@ const Navbar = () => {
   }, [isMobileMenuOpen]);
 
   const navLinks = [
-    { label: "Home",     href: "#hero" },
-    { label: "Services", href: "#services" },
-    { label: "Courses",  href: "#courses" },
-    { label: "Visa",     href: "#visa" },
-    { label: "Contact",  href: "#contact" },
+    { label: "Home",     href: "/#hero" },
+    { label: "Services", href: "/#services" },
+    { label: "Courses",  href: "/#courses" },
+    { label: "Visa",     href: "/#visa" },
+    { label: "Contact",  href: "/#contact" },
   ];
 
   return (
@@ -40,7 +41,7 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-[68px]">
 
             {/* ── Logo ── */}
-            <a href="#hero" className="flex items-center gap-2 group">
+            <Link href="/#hero" className="flex items-center gap-2 group">
               <div className="relative">
                 <span
                   className="text-2xl font-extrabold text-white tracking-tight"
@@ -57,12 +58,12 @@ const Navbar = () => {
               <span className="text-sm text-slate-400 hidden sm:block font-medium">
                 Consultancy
               </span>
-            </a>
+            </Link>
 
             {/* ── Desktop Nav ── */}
             <div className="hidden md:flex items-center gap-6">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
                   href={link.href}
                   className="relative text-sm font-medium text-slate-300 hover:text-white
@@ -73,19 +74,19 @@ const Navbar = () => {
                     className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-500 rounded-full
                                group-hover:w-full transition-all duration-300"
                   />
-                </a>
+                </Link>
               ))}
             </div>
 
             {/* ── CTA + Mobile Toggle ── */}
             <div className="flex items-center gap-3">
-              <a
-                href="#contact"
+              <Link
+                href="/#contact"
                 className="hidden md:flex btn-primary btn-shimmer text-sm px-5 py-2.5"
               >
                 Enquire Now
                 <ArrowUpRight className="w-4 h-4" />
-              </a>
+              </Link>
 
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -123,7 +124,7 @@ const Navbar = () => {
         {/* Links */}
         <nav className="flex flex-col gap-2 flex-1">
           {navLinks.map((link, i) => (
-            <a
+            <Link
               key={link.label}
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
@@ -135,20 +136,20 @@ const Navbar = () => {
             >
               {link.label}
               <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </a>
+            </Link>
           ))}
         </nav>
 
         {/* Mobile CTA */}
         <div className="mt-auto pt-6 border-t border-white/10">
-          <a
-            href="#contact"
+          <Link
+            href="/#contact"
             onClick={() => setIsMobileMenuOpen(false)}
             className="btn-primary btn-shimmer w-full justify-center text-base py-4"
           >
             Enquire Now
             <ArrowUpRight className="w-5 h-5" />
-          </a>
+          </Link>
           <p className="text-center text-xs text-slate-500 mt-4">
             Jed Consultancy · Shillong, Meghalaya
           </p>

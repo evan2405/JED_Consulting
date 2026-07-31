@@ -1,5 +1,5 @@
 import { client } from "../../../../Sainity/client.js";
-import { courseBySlugQuery } from "../../../../Sainity/queries.js";
+import { courseBySlugQuery, coursesQuery } from "../../../../Sainity/queries.js";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Footer from "../../../../components/Footer.jsx";
@@ -9,10 +9,45 @@ import CourseHero from "../../../../components/CourseHero.jsx";
 import AccreditationBadge from "../../../../components/AccreditationBadge.jsx";
 import DownloadButton from "../../../../components/DownloadButton.jsx";
 
+// ── ISR: rebuild page at most every 60 seconds ────────────────────────────────
+export const revalidate = 60;
+
+// ── Pre-render all course slugs at build time ─────────────────────────────────
+export async function generateStaticParams() {
+  const courses = await client.fetch(coursesQuery);
+  return (courses || [])
+    .filter((c) => c?.slug?.current)
+    .map((c) => ({ slug: c.slug.current }));
+}
+
+// ── Dynamic SEO metadata per course ──────────────────────────────────────────
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const course = await client.fetch(courseBySlugQuery, { slug });
+
+  if (!course) {
+    return { title: "Course Not Found | Jed Consultancy" };
+  }
+
+  return {
+    title: `${course.title} | Jed Consultancy`,
+    description:
+      course.description
+        ? course.description.slice(0, 155) + "…"
+        : `Learn ${course.title} with Jed Consultancy — expert-led, industry-recognised certification courses in Shillong.`,
+    openGraph: {
+      title: `${course.title} | Jed Consultancy`,
+      description: course.description?.slice(0, 155) ?? `Enroll in ${course.title} at Jed Consultancy.`,
+      images: course.image ? [{ url: course.image }] : [],
+      type: "article",
+    },
+  };
+}
 
 export default async function CourseDetailPage({ params }) {
   const { slug } = await params;
   const course = await client.fetch(courseBySlugQuery, { slug });
+
 
   if (!course) {
     notFound();
@@ -35,8 +70,8 @@ export default async function CourseDetailPage({ params }) {
       <section className="bg-[#0d1b3e] border-t border-white/5">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 py-16 md:py-20">
           <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-12 lg:gap-16">
-            {/* Main column */}
-            <div className="min-w-0">
+            {/* Main column — appears BELOW sidebar on mobile, LEFT on desktop */}
+            <div className="min-w-0 order-2 lg:order-1">
               <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-6">
                 About this course
               </h2>
@@ -67,8 +102,8 @@ export default async function CourseDetailPage({ params }) {
               </div>
             </div>
 
-            {/* Sticky enroll sidebar — signature element */}
-            <aside className="lg:sticky lg:top-24 self-start w-full">
+            {/* Sticky enroll sidebar — appears FIRST on mobile, RIGHT on desktop */}
+            <aside className="lg:sticky lg:top-24 self-start w-full order-1 lg:order-2">
               <div className="rounded-2xl border border-white/10 shadow-xl overflow-hidden glass-card">
                 <div className="bg-[#060f2b] p-6 border-b border-white/10">
                   <p className="text-slate-400 text-sm mb-1">Course fee</p>

@@ -43,6 +43,14 @@ export const metadata = {
   },
 };
 
+// Correct mobile viewport — prevents desktop zoom-out on phones
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5, // Allow user zoom (accessibility best practice)
+};
+
+
 export default function RootLayout({ children }) {
   return (
     <html

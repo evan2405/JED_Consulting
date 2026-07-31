@@ -25,7 +25,14 @@ export const courseBySlugQuery = groq`*[_type == "course" && slug.current == $sl
   "image": image.asset->url,
   "syllabusUrl": syllabusUrl,
   "accreditation": accreditation,
-  "examDates": examDates  
+  "examDates": examDates,
+  reviews[] {
+    _key,
+    author,
+    role,
+    quote,
+    rating
+  }
 }`;
 
 export const testimonialsQuery = groq`*[_type == "testimonial"] | order(_createdAt desc) {

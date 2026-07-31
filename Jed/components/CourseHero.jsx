@@ -24,7 +24,7 @@ export default function CourseHero({ course, avgRating = 0, reviews = [] }) {
             <p className="text-red-400 font-bold text-sm uppercase tracking-[0.2em] mb-4">
               {course.category?.toUpperCase() || "COURSE"}
             </p>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.05] text-white mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.05] text-white mb-6">
               {course.title}
             </h1>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-slate-300 text-sm md:text-base">

@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import {
   Mail,
   Phone,
@@ -34,12 +35,12 @@ const Footer = () => {
   const year = new Date().getFullYear();
 
   const quickLinks = [
-    { label: "Home",         href: "#hero" },
-    { label: "Services",     href: "#services" },
-    { label: "Courses",      href: "#courses" },
-    { label: "Visa Process", href: "#visa" },
-    { label: "Testimonials", href: "#testimonials" },
-    { label: "Contact",      href: "#contact" },
+    { label: "Home", href: "/#hero" },
+    { label: "Services", href: "/#services" },
+    { label: "Courses", href: "/#courses" },
+    { label: "Visa Process", href: "/#visa" },
+    { label: "Testimonials", href: "/#testimonials" },
+    { label: "Contact", href: "/#contact" },
   ];
 
   const services = [
@@ -53,14 +54,13 @@ const Footer = () => {
 
   const socials = [
     { icon: InstagramIcon, href: "#", label: "Instagram" },
-    { icon: TwitterIcon,   href: "#", label: "Twitter / X" },
-    { icon: LinkedinIcon,  href: "#", label: "LinkedIn" },
+    { icon: TwitterIcon, href: "#", label: "Twitter / X" },
+    { icon: LinkedinIcon, href: "#", label: "LinkedIn" },
   ];
 
   const legal = [
-    { label: "Privacy Policy",    href: "#" },
-    { label: "Terms & Conditions", href: "#" },
-    { label: "Cookie Policy",     href: "#" },
+    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "Terms & Conditions", href: "/terms-and-conditions" },
   ];
 
   return (
@@ -80,13 +80,13 @@ const Footer = () => {
                 Talk to our experts today — your global career is one step away.
               </p>
             </div>
-            <a
-              href="#contact"
+            <Link
+              href="/#contact"
               className="btn-primary btn-shimmer shrink-0 text-base px-7 py-3.5"
             >
               Enquire Now
               <ArrowUpRight className="w-5 h-5" />
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -141,7 +141,7 @@ const Footer = () => {
             <ul className="flex flex-col gap-3">
               {quickLinks.map((link) => (
                 <li key={link.label}>
-                  <a
+                  <Link
                     href={link.href}
                     className="flex items-center gap-2 text-sm text-slate-400
                                hover:text-red-400 transition-colors group"
@@ -151,7 +151,7 @@ const Footer = () => {
                                  -translate-x-1 group-hover:translate-x-0 transition-all"
                     />
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -194,18 +194,27 @@ const Footer = () => {
             </h4>
             <div className="flex flex-col gap-4">
               {[
-                { icon: Phone, value: "+91 (0) 364 XXX XXXX" },
-                { icon: Mail,  value: "info@jedcms.com"       },
-                { icon: MapPin, value: "Shillong, Meghalaya, India" },
+                { icon: Phone, value: "+91 (0) 364 XXX XXXX", href: "tel:+91036400000" },
+                { icon: Mail, value: "info@jedcms.com", href: "mailto:info@jedcms.com" },
+                { icon: MapPin, value: "Shillong, Meghalaya, India", href: null },
               ].map((item, i) => {
                 const Icon = item.icon;
-                return (
-                  <div key={i} className="flex items-start gap-3">
+                const content = (
+                  <>
                     <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center
                                     justify-center shrink-0 mt-0.5">
                       <Icon className="w-3.5 h-3.5 text-red-400" />
                     </div>
                     <p className="text-sm text-slate-400">{item.value}</p>
+                  </>
+                );
+                return item.href ? (
+                  <a key={i} href={item.href} className="flex items-start gap-3 hover:opacity-80 transition-opacity">
+                    {content}
+                  </a>
+                ) : (
+                  <div key={i} className="flex items-start gap-3">
+                    {content}
                   </div>
                 );
               })}
@@ -223,13 +232,13 @@ const Footer = () => {
           </p>
           <div className="flex gap-5">
             {legal.map((item) => (
-              <a
+              <Link
                 key={item.label}
                 href={item.href}
                 className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>

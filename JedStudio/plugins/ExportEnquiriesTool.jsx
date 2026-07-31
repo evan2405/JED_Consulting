@@ -21,8 +21,12 @@ export default function ExportEnquiriesTool() {
     setErrorMsg('')
 
     try {
-      const url = `${API_URL}?key=${encodeURIComponent(adminKey.trim())}`
-      const res = await fetch(url)
+      const res = await fetch(API_URL, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${adminKey.trim()}`,
+        },
+      })
 
       if (res.status === 401) {
         setStatus('error')

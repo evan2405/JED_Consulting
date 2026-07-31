@@ -469,9 +469,19 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 20px;
   width: 100%;
   max-width: 520px;
+  /* Use dvh (dynamic viewport height) on mobile to account for browser chrome */
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
+  /* Rounded corners only on top for bottom-sheet feel on small screens */
+  border-radius: 16px 16px 20px 20px;
   animation: scaleIn 0.25s ease;
+}
+
+@media (min-width: 640px) {
+  .modal-content {
+    border-radius: 20px;
+  }
 }
 
 /* ============================================
@@ -479,23 +489,33 @@ h1, h2, h3, h4, h5, h6 {
    ============================================ */
 .fab-enquire {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+  bottom: 1.25rem;
+  right: 1rem;
   z-index: 50;
   background: var(--red-500);
   color: white;
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 0.9rem;
-  padding: 0.9rem 1.5rem;
+  font-size: 0.8rem;
+  padding: 0.75rem 1.1rem;
   border-radius: 9999px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   box-shadow: 0 8px 30px rgba(220, 38, 38, 0.4);
+}
+
+@media (min-width: 640px) {
+  .fab-enquire {
+    bottom: 2rem;
+    right: 2rem;
+    font-size: 0.9rem;
+    padding: 0.9rem 1.5rem;
+    gap: 0.5rem;
+  }
 }
 
 .fab-enquire:hover {
@@ -568,7 +588,15 @@ h1, h2, h3, h4, h5, h6 {
 .testimonial-card-snap {
   scroll-snap-align: start;
   flex-shrink: 0;
-  width: 320px;
+  /* Full-width on phones, fixed 320px on larger screens */
+  width: calc(100vw - 3rem); /* 1.5rem padding each side */
+  max-width: 360px;
+}
+
+@media (min-width: 640px) {
+  .testimonial-card-snap {
+    width: 320px;
+  }
 }
 
 /* ============================================
