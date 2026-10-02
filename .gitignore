@@ -6,6 +6,7 @@
 **/playwright-report/
 **/test-results/
 artifacts/
+artifacts
 docs/
 *.log
 member_tasks.md
