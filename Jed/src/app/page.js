@@ -1,36 +1,58 @@
-import { client } from "../../Sainity/client";
-import {
-  coursesQuery,
-  testimonialsQuery,
-  visaServicesQuery,
-  faqsQuery,
-  activeBannersQuery,
+﻿import {
+  getCourses,
+  getActiveBanners,
+  getServices,
+  getSettings,
+  getHomepage,
+  getFaqs,
+  getCollection,
 } from "../../Sainity/queries";
 import Navbar from "../../components/Navbar";
 import Home from "../../components/Home";
 import Footer from "../../components/Footer";
-
+import Updates from "../../components/Updates";
+import { pageMetadata } from "../../lib/metadata";
+export const metadata = pageMetadata(
+  "Education, careers & counselling in Shillong",
+  "Explore professional courses, academic, career and financial counselling with J.ed Placement Consultancy.",
+  "/",
+);
 export const revalidate = 60;
-
 export default async function Page() {
-  // Parallel fetch for speed
-  const [courses, testimonials, visaServices, faqs, banners] = await Promise.all([
-    client.fetch(coursesQuery),
-    client.fetch(testimonialsQuery),
-    client.fetch(visaServicesQuery),
-    client.fetch(faqsQuery),
-    client.fetch(activeBannersQuery),
+  const [
+    { courses, unavailable },
+    banners,
+    services,
+    settings,
+    home,
+    faqs,
+    updates,
+    testimonials,
+    placements,
+  ] = await Promise.all([
+    getCourses(),
+    getActiveBanners(),
+    getServices(),
+    getSettings(),
+    getHomepage(),
+    getFaqs(),
+    getCollection("updates"),
+    getCollection("testimonials"),
+    getCollection("placements"),
   ]);
-
   return (
     <>
+      <Updates
+        banners={banners.filter((b) =>
+          ["updates", "homepage_top"].includes(b.placement),
+        )}
+      />
       <Navbar />
       <Home
-        courses={courses}
-        testimonials={testimonials}
-        visaServices={visaServices}
-        faqs={faqs}
-        banners={banners}
+        {...{ courses, unavailable, banners, services, settings, home, faqs }}
+        updates={updates.items}
+        testimonials={testimonials.items}
+        placements={placements.items}
       />
       <Footer />
     </>

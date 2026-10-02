@@ -1,0 +1,31 @@
+name: Production readiness monitor
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+permissions: {}
+jobs:
+  readiness:
+    if: vars.MONITOR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check protected readiness
+        env:
+          MONITOR_ORIGIN: ${{ vars.MONITOR_ORIGIN }}
+          MONITOR_SECRET: ${{ secrets.MONITOR_SECRET }}
+        run: |
+          node --input-type=module <<'JS'
+          const origin = process.env.MONITOR_ORIGIN;
+          const token = process.env.MONITOR_SECRET;
+          if (!origin || !token || new URL(origin).protocol !== 'https:') {
+            throw new Error('Configure an HTTPS monitor origin and its secret.');
+          }
+          const response = await fetch(new URL('/api/health/ready', origin), {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(20000),
+          });
+          if (!response.ok) throw new Error(`Readiness failed with HTTP ${response.status}.`);
+          const body = await response.json();
+          if (body.status !== 'ready') throw new Error('Application is not ready.');
+          console.log('Production readiness passed.');
+          JS

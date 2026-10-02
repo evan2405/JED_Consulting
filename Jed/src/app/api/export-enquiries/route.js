@@ -1,130 +1,75 @@
-import { writeClient } from "../../../../Sainity/client.js";
-import { NextResponse } from "next/server";
-import logger from "../../../../lib/logger.js";
-
-const client = writeClient;
-
-// Escape a CSV cell value
-function csvCell(value) {
-  if (value === null || value === undefined) return "";
-  const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-// ── CORS ──────────────────────────────────────────────────────────────────────
-// Allow Sanity Studio from localhost (dev) and production origin (if set)
-const STUDIO_ORIGIN =
-  process.env.NEXT_PUBLIC_STUDIO_ORIGIN || "http://localhost:3333";
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": STUDIO_ORIGIN,
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-// Handle CORS preflight
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: CORS_HEADERS });
-}
-
-// ── Auth helper ───────────────────────────────────────────────────────────────
-// Accepts key via:
-//   1. Authorization: Bearer <key>  (preferred — not visible in server logs)
-//   2. ?key=<key>                   (legacy — still supported)
-function extractKey(request) {
-  const authHeader = request.headers.get("authorization") || "";
-  if (authHeader.startsWith("Bearer ")) {
-    return authHeader.slice(7).trim();
-  }
-  const { searchParams } = new URL(request.url);
-  return searchParams.get("key");
-}
-
+import { privateClient } from "../../../../Sainity/client.js";
+import { requireStaff } from "../../../../lib/auth.js";
+import { rateLimit } from "../../../../lib/rate-limit.js";
+import { csvCell } from "../../../../lib/validation.js";
+import { apiError, HttpError } from "../../../../lib/http.js";
+import { enquiryFilters, leadFilter } from "../../../../lib/enquiry-filters.js";
+import { audit } from "../../../../lib/audit.js";
 export async function GET(request) {
-  const key      = extractKey(request);
-  const adminKey = process.env.ADMIN_EXPORT_KEY;
-
-  if (!adminKey || key !== adminKey) {
-    logger.warn("GET /api/export-enquiries", "Unauthorized export attempt", {
-      ip: request.headers.get("x-forwarded-for") || "unknown",
-    });
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const submissions = await client.fetch(
-      `*[_type == "submission"] | order(submittedAt desc) {
-        name,
-        email,
-        phone,
-        service,
-        country,
-        preferredDestination,
-        interestedCourse,
-        message,
-        submittedAt
-      }`
+    const user = await requireStaff(["exporter", "admin"]);
+    await rateLimit(request, "export", user.sub);
+    const p = new URL(request.url).searchParams;
+    if (p.has("key"))
+      throw new HttpError(400, "URL credentials are not supported.");
+    const filters = enquiryFilters(p, { requireDates: true });
+    const from = p.get("from"),
+      to = p.get("to");
+    const records = await privateClient().fetch(
+      `*[_type=="submission" && ${leadFilter}] | order(_createdAt desc)[0...1001]{name,email,phone,serviceInterested,service,selectedCourse,courseTitle,interestedCourse,careerGoal,loanType,status,submittedAt,_createdAt}`,
+      filters,
     );
-
-    logger.info("GET /api/export-enquiries", "Export successful", {
-      count: submissions.length,
+    if (records.length > 1000)
+      throw new HttpError(
+        400,
+        "More than 1,000 records match. Choose a shorter date range.",
+      );
+    await audit(user, "export", {
+      recordCount: records.length,
+      dateFrom: from,
+      dateTo: to,
     });
-
-    const headers = [
-      "Name",
-      "Email",
-      "Phone",
-      "Interested Service",
-      "Country",
-      "Preferred Destination",
-      "Interested Course",
-      "Message",
-      "Submitted At",
+    const rows = [
+      [
+        "Name",
+        "Email",
+        "Phone",
+        "Service",
+        "Course",
+        "Career goal",
+        "Loan type",
+        "Status",
+        "Submitted at",
+      ],
+      ...records.map((s) => [
+        s.name,
+        s.email,
+        s.phone,
+        s.serviceInterested || s.service,
+        s.courseTitle || s.selectedCourse || s.interestedCourse,
+        s.careerGoal,
+        s.loanType,
+        s.status,
+        s.submittedAt || s._createdAt,
+      ]),
     ];
-
-    const rows = submissions.map((s) => [
-      csvCell(s.name),
-      csvCell(s.email),
-      csvCell(s.phone),
-      csvCell(s.service),
-      csvCell(s.country),
-      csvCell(s.preferredDestination),
-      csvCell(s.interestedCourse),
-      csvCell(s.message),
-      csvCell(s.submittedAt ? new Date(s.submittedAt).toLocaleString("en-IN") : ""),
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((r) => r.join(",")),
-    ].join("\r\n");
-
-    // UTF-8 BOM for Excel compatibility
-    const csvWithBom = "\uFEFF" + csvContent;
-    const fileName   = `jed-enquiries-${new Date().toISOString().slice(0, 10)}.csv`;
-
-    return new Response(csvWithBom, {
-      status: 200,
-      headers: {
-        ...CORS_HEADERS,
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-        "Cache-Control": "no-store",
+    return new Response(
+      "\uFEFF" + rows.map((r) => r.map(csvCell).join(",")).join("\r\n"),
+      {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition":
+            'attachment; filename="jed-enquiries-' +
+            from +
+            "-to-" +
+            to +
+            '.csv"',
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
       },
-    });
-  } catch (err) {
-    logger.error("GET /api/export-enquiries", "Export failed", { error: err });
-    return NextResponse.json(
-      { error: "Failed to export enquiries" },
-      { status: 500 }
     );
+  } catch (e) {
+    return apiError(e);
   }
-}
-
-// Reject non-GET
-export async function POST() {
-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }

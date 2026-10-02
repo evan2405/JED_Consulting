@@ -1,64 +1,65 @@
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import WebVitals from "../../components/WebVitals";
+import { Suspense } from "react";
+import PageScroll from "../../components/PageScroll";
+import { headers } from "next/headers";
 import "./globals.css";
-import LenisProvider from "../../components/LenisProvider";
-
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-heading",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
+import Consent from "../../components/Consent";
+import MobileActions from "../../components/MobileActions";
+import InteractionAnalytics from "../../components/InteractionAnalytics";
+import { getSettings } from "../../Sainity/queries";
+const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 export const metadata = {
-  title: "Jed Consultancy — Your Gateway to Global Education",
+  metadataBase: new URL(site),
+  title: {
+    default: "J.Ed Placement Consultancy | Your next chapter",
+    template: "%s | J.Ed Placement Consultancy",
+  },
   description:
-    "Expert visa consultancy and world-class professional courses. We help students and professionals achieve their international education and career goals.",
-  keywords:
-    "visa consultancy, study abroad, professional courses, career counseling, Shillong, Meghalaya",
-  authors: [{ name: "Jed Consultancy" }],
+    "Academic, career and financial counselling in Shillong. Explore professional courses, placement membership, recruitment and business support.",
   openGraph: {
-    title: "Jed Consultancy — Your Gateway to Global Education",
-    description:
-      "Expert visa consultancy and world-class professional courses to accelerate your career across borders.",
     type: "website",
     locale: "en_IN",
-    siteName: "Jed Consultancy",
+    siteName: "J.Ed Placement Consultancy",
+    images: [
+      {
+        url: "/logo.png",
+        width: 2242,
+        height: 2396,
+        alt: "J.Ed Placement Consultancy",
+      },
+    ],
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Jed Consultancy — Your Gateway to Global Education",
-    description:
-      "Expert visa consultancy and world-class professional courses to accelerate your career across borders.",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  twitter: { card: "summary", images: ["/logo.png"] },
+  icons: { icon: "/icon.png", apple: "/apple-icon.png" },
+  robots: { index: !!process.env.NEXT_PUBLIC_SITE_URL, follow: true },
 };
-
-// Correct mobile viewport — prevents desktop zoom-out on phones
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5, // Allow user zoom (accessibility best practice)
+  themeColor: "#10264d",
 };
-
-
-export default function RootLayout({ children }) {
+async function ContactActions() {
+  const settings = await getSettings();
+  return <MobileActions phone={settings.phone} />;
+}
+export default async function RootLayout({ children }) {
+  const nonce = (await headers()).get("x-nonce");
   return (
-    <html
-      lang="en"
-      className={`${plusJakarta.variable} ${inter.variable} h-full`}
-    >
-      <body className="min-h-full flex flex-col bg-navy-900 text-white antialiased">
-        <LenisProvider>{children}</LenisProvider>
+    <html lang="en" data-scroll-behavior="smooth">
+      <body>
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
+        {children}
+        <Suspense fallback={null}>
+          <PageScroll />
+        </Suspense>
+        <Consent nonce={nonce} />
+        <WebVitals />
+        <InteractionAnalytics />
+        <Suspense fallback={null}>
+          <ContactActions />
+        </Suspense>
       </body>
     </html>
   );

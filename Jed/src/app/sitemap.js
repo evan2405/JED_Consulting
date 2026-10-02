@@ -1,46 +1,51 @@
-import { client } from "../../Sainity/client";
-import { coursesQuery } from "../../Sainity/queries";
-
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://jedconsultancy.com";
-
+﻿import { getCourses, getServices, getCollection } from "../../Sainity/queries";
+export const revalidate = 60;
 export default async function sitemap() {
-  // Static routes
-  const staticRoutes = [
-    {
-      url: BASE_URL,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 1.0,
-    },
-    {
-      url: `${BASE_URL}/privacy-policy`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${BASE_URL}/terms-and-conditions`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+  const base = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!base) return [];
+  const [{ courses }, services, updates] = await Promise.all([
+    getCourses(),
+    getServices(),
+    getCollection("updates"),
+  ]);
+  const paths = [
+    "",
+    "/courses",
+    "/counselling",
+    "/career",
+    "/financial",
+    "/placements",
+    "/updates",
+    "/contact",
+    "/privacy-policy",
+    "/terms",
   ];
-
-  // Dynamic course routes from Sanity
-  let courseRoutes = [];
-  try {
-    const courses = await client.fetch(coursesQuery);
-    courseRoutes = (courses || [])
-      .filter((c) => c?.slug?.current)
+  return [
+    ...paths.map((path) => ({
+      url: base + path,
+      changeFrequency: "monthly",
+      priority: path ? 0.7 : 1,
+    })),
+    ...courses
+      .filter((c) => c.slug?.current)
       .map((c) => ({
-        url: `${BASE_URL}/courses/${c.slug.current}`,
-        lastModified: new Date(),
+        url: base + "/courses/" + c.slug.current,
+        changeFrequency: "weekly",
+        priority: 0.8,
+      })),
+    ...services
+      .filter((s) => s.slug?.current)
+      .map((s) => ({
+        url: base + "/counselling/" + s.slug.current,
         changeFrequency: "monthly",
         priority: 0.8,
-      }));
-  } catch {
-    // If Sanity is unavailable during build, skip dynamic routes
-  }
-
-  return [...staticRoutes, ...courseRoutes];
+      })),
+    ...updates.items
+      .filter((u) => u.slug?.current)
+      .map((u) => ({
+        url: base + "/updates/" + u.slug.current,
+        changeFrequency: "weekly",
+        priority: 0.6,
+      })),
+  ];
 }

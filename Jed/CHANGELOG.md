@@ -1,5 +1,7 @@
 # Jed Consultancy - Redesign & System Improvements Log
 
+> Historical record: the entries below describe earlier implementations and may mention superseded APIs or configuration. For the current 1 October 2026 UI work, see [UI_REDESIGN_LOG.md](../docs/UI_REDESIGN_LOG.md). Current backend/deployment guidance is in [LAUNCH_STATUS.md](../docs/LAUNCH_STATUS.md) and [DEPLOYMENT.md](../docs/DEPLOYMENT.md).
+
 This file contains a detailed record of all changes, refactors, and enhancements implemented in the Jed Consultancy codebase.
 
 ---
@@ -142,6 +144,5 @@ This file contains a detailed record of all changes, refactors, and enhancements
     6. **Enquire Now** (purple pill CTA button)
 * **API Validation Update ([route.js](file:///e:/Jed/Jed/src/app/api/contact/route.js)):**
   * Made the `message` field optional and auto-generated based on the selected course so submissions save cleanly to Sanity.
-
 
 

@@ -1,77 +1,94 @@
-import { writeClient } from "../../../../Sainity/client.js";
-import { NextResponse } from "next/server";
-import logger from "../../../../lib/logger.js";
-
-const client = writeClient;
-
-// Simple HTML-strip sanitizer
-function sanitize(str) {
-  if (typeof str !== "string") return "";
-  return str.replace(/<[^>]*>/g, "").trim().slice(0, 2000);
-}
-
-// Email regex
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+import { assertPrivateStorage } from "../../../../lib/storage-privacy.js";
+import { createHash } from "node:crypto";
+import { privateClient } from "../../../../Sainity/client.js";
+import { getCourses, getService } from "../../../../Sainity/queries.js";
+import { validateEnquiry } from "../../../../lib/validation.js";
+import {
+  readJson,
+  sameOrigin,
+  apiError,
+  HttpError,
+} from "../../../../lib/http.js";
+import { rateLimit } from "../../../../lib/rate-limit.js";
+import { notifyLead } from "../../../../lib/notifications.js";
 export async function POST(request) {
   try {
-    const body = await request.json();
-
-    // ── Honeypot check ─────────────────────────────────────────────────────────
-    if (body.website) {
-      // Silently reject bots — return 200 so bots think it worked
-      return NextResponse.json({ success: true });
+    sameOrigin(request);
+    await rateLimit(request);
+    const body = await readJson(request);
+    if (body?.website) return Response.json({ success: true });
+    const key = request.headers.get("idempotency-key");
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        key || "",
+      )
+    )
+      throw new HttpError(
+        400,
+        "A valid submission identifier is required. Please reload the form.",
+      );
+    const { courses } = await getCourses();
+    const { errors, data } = validateEnquiry(
+      body,
+      courses.map((c) => c._id),
+    );
+    if (Object.keys(errors).length)
+      return Response.json({ success: false, errors }, { status: 400 });
+    const selected = courses.find((c) => c._id === data.selectedCourse);
+    if (data.counsellingSlug) {
+      const service = await getService(data.counsellingSlug);
+      if (!service || service.service !== data.serviceInterested)
+        throw new HttpError(
+          400,
+          "The selected counselling service is unavailable. Please choose another service.",
+        );
     }
-
-    // ── Validation ─────────────────────────────────────────────────────────────
-    const name    = sanitize(body.name);
-    const email   = sanitize(body.email);
-    const phone   = sanitize(body.phone);
-    const service = sanitize(body.service);
-    const country             = sanitize(body.country);
-    const preferredDestination = sanitize(body.preferredDestination);
-    const interestedCourse    = sanitize(body.interestedCourse);
-    const rawMessage          = sanitize(body.message);
-
-    const message = rawMessage || `Course Enquiry for: ${interestedCourse || "General Course Enquiry"}`;
-
-    const errors = [];
-    if (!name || name.length < 2) errors.push("Name is required (min 2 chars)");
-    if (!email || !EMAIL_RE.test(email)) errors.push("A valid email is required");
-    if (!phone || phone.length < 6) errors.push("A valid phone number is required");
-
-    if (errors.length > 0) {
-      return NextResponse.json({ success: false, errors }, { status: 400 });
-    }
-
-    // ── Write to Sanity ────────────────────────────────────────────────────────
-    await client.create({
+    const payload = { ...data, courseTitle: selected?.title || "" };
+    const digest = createHash("sha256")
+      .update(JSON.stringify(payload))
+      .digest("hex");
+    const id = "enquiry." + key.toLowerCase();
+    await assertPrivateStorage();
+    const writer = privateClient("write");
+    const record = await writer.createIfNotExists({
+      _id: id,
       _type: "submission",
-      name,
-      email,
-      phone,
-      service,
-      message,
-      country,
-      preferredDestination,
-      interestedCourse,
+      ...payload,
+      payloadDigest: digest,
+      status: "new",
+      notificationStatus: "pending",
       submittedAt: new Date().toISOString(),
+      consentVersion: "2026-09-26",
     });
-
-    return NextResponse.json(
-      { success: true, message: "Enquiry submitted successfully!" },
-      { status: 200 }
+    if (record.payloadDigest !== digest)
+      throw new HttpError(
+        409,
+        "This submission identifier has already been used. Reload to send a different enquiry.",
+      );
+    if (record.notificationStatus !== "sent") {
+      try {
+        await notifyLead(id);
+      } catch {
+        console.error(
+          JSON.stringify({ event: "lead_notification_pending", id }),
+        );
+      }
+    }
+    return Response.json(
+      { success: true },
+      { headers: { "Cache-Control": "no-store" } },
     );
-  } catch (err) {
-    logger.error("POST /api/contact", "Failed to save enquiry", { error: err });
-    return NextResponse.json(
-      { success: false, error: "Internal server error. Please try again." },
-      { status: 500 }
-    );
+  } catch (error) {
+    if (!(error instanceof HttpError))
+      console.error(JSON.stringify({ event: "enquiry_save_failed" }));
+    const response = apiError(error);
+    if (error.status === 429) response.headers.set("Retry-After", "600");
+    return response;
   }
 }
-
-// Reject non-POST
-export async function GET() {
-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+export function GET() {
+  return Response.json(
+    { error: "Method not allowed" },
+    { status: 405, headers: { Allow: "POST" } },
+  );
 }

@@ -1,22 +1,12 @@
+﻿import {approval, order} from './shared'
 export default {
   name: 'faq',
   title: 'FAQs',
   type: 'document',
   fields: [
-    {
-      name: 'question',
-      title: 'Question',
-      type: 'string',
-    },
-    {
-      name: 'answer',
-      title: 'Answer',
-      type: 'text',
-    },
-    {
-      name: 'order',
-      title: 'Display Order',
-      type: 'number',
-    },
+    {name: 'question', type: 'string', validation: (r) => r.required().max(300)},
+    {name: 'answer', type: 'text', validation: (r) => r.required().max(4000)},
+    order,
+    ...approval,
   ],
 }

@@ -1,34 +1,34 @@
-import { createClient } from "next-sanity";
-
-const projectId  = process.env.SANITY_PROJECT_ID;
-const dataset    = process.env.SANITY_DATASET;
-const apiVersion = "2024-01-01";
-const token      = process.env.SANITY_API_TOKEN;
-
-/**
- * client — CDN-enabled read client with token.
- * Use for all public-facing data fetches (homepage, courses, testimonials, etc.).
- * - useCdn: true  → responses served from Sanity's global edge CDN (fast)
- * - token included → works on both public AND private datasets
- */
-export const client = createClient({
-  projectId,
-  dataset,
-  apiVersion,
-  token,
-  useCdn: true,
-});
-
-/**
- * writeClient — CDN disabled, same token.
- * Use ONLY in API routes that WRITE to Sanity or need the absolute freshest data.
- * - useCdn: false → bypasses CDN, always hits the live API
- * - Required for: /api/contact (create submission), /api/export-enquiries (fetch live data)
- */
-export const writeClient = createClient({
-  projectId,
-  dataset,
-  apiVersion,
-  token,
-  useCdn: false,
-});
+import "server-only";
+import { createClient } from "@sanity/client";
+const projectId = process.env.SANITY_PROJECT_ID;
+const dataset = process.env.SANITY_DATASET;
+export const client =
+  projectId && dataset
+    ? createClient({
+        projectId,
+        dataset,
+        apiVersion: "2026-01-01",
+        perspective: "published",
+        useCdn: false,
+        timeout: 8000,
+        maxRetries: 1,
+        token: process.env.SANITY_CONTENT_READ_TOKEN,
+      })
+    : null;
+export function privateClient(mode = "read") {
+  const privateDataset = process.env.SANITY_ENQUIRY_DATASET;
+  const token =
+    mode === "write"
+      ? process.env.SANITY_ENQUIRY_WRITE_TOKEN
+      : process.env.SANITY_ENQUIRY_READ_TOKEN;
+  if (!projectId || !privateDataset || !token || privateDataset === dataset)
+    throw new Error("Private enquiry storage is not configured");
+  return createClient({
+    projectId,
+    dataset: privateDataset,
+    token,
+    apiVersion: "2026-01-01",
+    useCdn: false,
+    timeout: 5000,
+  });
+}

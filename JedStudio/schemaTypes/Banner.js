@@ -1,57 +1,50 @@
+import {approval, imageFields} from './shared'
 export default {
   name: 'banner',
   title: 'Banners',
   type: 'document',
   fields: [
-    {
-      name: 'title',
-      title: 'Title',
-      type: 'string',
-    },
-    {
-      name: 'subtitle',
-      title: 'Subtitle',
-      type: 'text',
-    },
-    {
-      name: 'image',
-      title: 'Banner Image',
-      type: 'image',
-      options: { hotspot: true },
-    },
-    {
-      name: 'ctaText',
-      title: 'Button Text',
-      type: 'string',
-    },
+    ...approval,
+    {name: 'title', type: 'string', validation: (r) => r.required().max(160)},
+    {name: 'subtitle', type: 'text'},
+    {...imageFields[0]},
+    imageFields[1],
+    {name: 'ctaText', title: 'Link text', type: 'string'},
     {
       name: 'ctaLink',
-      title: 'Button Link',
+      title: 'Link',
       type: 'url',
+      validation: (r) => r.uri({scheme: ['https'], allowRelative: true}),
     },
-    {
-      name: 'isActive',
-      title: 'Is Active?',
-      type: 'boolean',
-    },
+    {name: 'isActive', title: 'Active', type: 'boolean', initialValue: false},
     {
       name: 'placement',
-      title: 'Placement',
       type: 'string',
+      initialValue: 'homepage_top',
       options: {
         list: [
-          { title: 'Homepage Top', value: 'homepage_top' },
-          { title: 'Homepage Bottom', value: 'homepage_bottom' },
-          { title: 'Courses Page', value: 'courses_page' },
-          { title: 'Blog Page', value: 'blog_page' },
+          {title: 'Latest updates', value: 'updates'},
+          {title: 'Homepage top', value: 'homepage_top'},
+          {title: 'Homepage bottom', value: 'homepage_bottom'},
+          {title: 'Homepage feature', value: 'homepage'},
+          {title: 'Promotional', value: 'promotional'},
         ],
-        layout: 'radio',
       },
     },
+    {name: 'publishAt', title: 'Publish at', type: 'datetime'},
     {
-      name: 'order',
-      title: 'Display Order',
-      type: 'number',
+      name: 'expiresAt',
+      title: 'Expires at',
+      type: 'datetime',
+      validation: (r) =>
+        r.custom(
+          (value, context) =>
+            !value ||
+            !context.document.publishAt ||
+            new Date(value) > new Date(context.document.publishAt) ||
+            'Expiry must be after publication.',
+        ),
     },
+    {name: 'order', type: 'number', initialValue: 0},
   ],
 }
